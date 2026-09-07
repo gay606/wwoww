@@ -1,0 +1,681 @@
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Name = "MenuGUI"
+ScreenGui.ResetOnSpawn = false
+
+-- ====== wow ======
+local OpenBtn = Instance.new("TextButton", ScreenGui)
+OpenBtn.Size = UDim2.new(0, 120, 0, 40)
+OpenBtn.Position = UDim2.new(0.5, -60, 0, 0)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+OpenBtn.Text = "☰ Mở Menu"
+OpenBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+OpenBtn.Font = Enum.Font.GothamBold
+OpenBtn.TextSize = 18
+OpenBtn.Visible = false
+OpenBtn.ZIndex = 50
+local openCorner = Instance.new("UICorner", OpenBtn)
+openCorner.CornerRadius = UDim.new(0, 8)
+OpenBtn.MouseEnter:Connect(function()
+    OpenBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+    OpenBtn.Size = UDim2.new(0, 125, 0, 42)
+end)
+OpenBtn.MouseLeave:Connect(function()
+    OpenBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+    OpenBtn.Size = UDim2.new(0, 120, 0, 40)
+end)
+
+-- ====== MENU CHÍNH ======
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 350, 0, 280)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -140)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Visible = true
+MainFrame.ZIndex = 1
+
+-- Title Bar
+local TitleBar = Instance.new("Frame", MainFrame)
+TitleBar.Size = UDim2.new(1, 0, 0, 35)
+TitleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+TitleBar.BorderSizePixel = 0
+TitleBar.ZIndex = 5
+
+-- Nút thu nhỏ
+local CloseBtn = Instance.new("TextButton", TitleBar)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 2.5)
+CloseBtn.Text = "−"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 200, 100)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+CloseBtn.BorderSizePixel = 1
+CloseBtn.BorderColor3 = Color3.fromRGB(100, 100, 120)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 22
+CloseBtn.ZIndex = 10
+
+-- Sidebar
+local Sidebar = Instance.new("Frame", MainFrame)
+Sidebar.Size = UDim2.new(0, 90, 1, -35)
+Sidebar.Position = UDim2.new(0, 0, 0, 35)
+Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+Sidebar.BorderSizePixel = 0
+
+local Divider = Instance.new("Frame", MainFrame)
+Divider.Size = UDim2.new(0, 2, 1, -35)
+Divider.Position = UDim2.new(0, 90, 0, 35)
+Divider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Divider.BackgroundTransparency = 0.3
+Divider.BorderSizePixel = 0
+Divider.ZIndex = 3
+
+-- Content Containers
+local ContentHolders = {
+    Main = Instance.new("Frame", MainFrame),
+    ["Đồ Chơi Khác"] = Instance.new("Frame", MainFrame),
+    Author = Instance.new("Frame", MainFrame)
+}
+for _, frame in pairs(ContentHolders) do
+    frame.Size = UDim2.new(1, -92, 1, -35)
+    frame.Position = UDim2.new(0, 92, 0, 35)
+    frame.BackgroundTransparency = 1
+    frame.Visible = false
+end
+ContentHolders.Main.Visible = true
+
+-- Tab Buttons
+local tabNames = {"Main", "Đồ Chơi Khác", "Author"}
+local currentTab = nil
+for i, name in pairs(tabNames) do
+    local btn = Instance.new("TextButton", Sidebar)
+    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.Position = UDim2.new(0, 0, 0, (i-1) * 35)
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(180, 180, 200)
+    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    btn.BorderSizePixel = 0
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 13
+    btn.ZIndex = 2
+    btn.MouseEnter:Connect(function()
+        if currentTab ~= btn then
+            btn.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+        end
+    end)
+    btn.MouseLeave:Connect(function()
+        if currentTab ~= btn then
+            btn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+        end
+    end)
+    btn.MouseButton1Click:Connect(function()
+        for _, button in pairs(Sidebar:GetChildren()) do
+            if button:IsA("TextButton") then
+                button.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+            end
+        end
+        btn.BackgroundColor3 = Color3.fromRGB(45, 45, 70)
+        currentTab = btn
+        for _, frame in pairs(ContentHolders) do
+            frame.Visible = false
+        end
+        if ContentHolders[name] then
+            ContentHolders[name].Visible = true
+        end
+    end)
+end
+
+-- Tự động chọn tab Main
+local mainTab = Sidebar:FindFirstChild("Main")
+if mainTab then mainTab.MouseButton1Click:Fire() end
+local player = game.Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+local features = { esp = false, aim = false, fling = false, speed = false }
+local connections = {}
+local espObjects = {}
+local aimCircle = nil
+local circleSize = 200
+
+-- === ESP ===
+local function createESP(otherPlayer)
+    if espObjects[otherPlayer] then return end
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(0, 100, 0, 14)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = otherPlayer.Name
+    nameLabel.TextColor3 = Color3.fromRGB(255,255,255)
+    nameLabel.TextScaled = true
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.Parent = ScreenGui
+
+    local box = Instance.new("Frame")
+    box.Size = UDim2.new(0, 30, 0, 60)
+    box.BackgroundTransparency = 0.5
+    box.BackgroundColor3 = Color3.fromRGB(255,0,0)
+    box.BorderSizePixel = 2
+    box.BorderColor3 = Color3.fromRGB(0,255,0)
+    box.Parent = ScreenGui
+
+    local distLabel = Instance.new("TextLabel")
+    distLabel.Size = UDim2.new(0, 50, 0, 12)
+    distLabel.BackgroundTransparency = 1
+    distLabel.Text = "0s"
+    distLabel.TextColor3 = Color3.fromRGB(255,255,0)
+    distLabel.TextScaled = true
+    distLabel.Font = Enum.Font.Gotham
+    distLabel.Parent = ScreenGui
+
+    espObjects[otherPlayer] = {Name = nameLabel, Box = box, Dist = distLabel}
+end
+
+local function removeESP(otherPlayer)
+    local data = espObjects[otherPlayer]
+    if data then
+        data.Name:Destroy()
+        data.Box:Destroy()
+        data.Dist:Destroy()
+        espObjects[otherPlayer] = nil
+    end
+end
+Players.PlayerRemoving:Connect(removeESP)
+
+local function updateESP()
+    for _, data in pairs(espObjects) do
+        data.Name.Visible = false
+        data.Box.Visible = false
+        data.Dist.Visible = false
+    end
+    if not features.esp then return end
+
+    local myChar = player.Character
+    if not myChar then return end
+    local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+
+    for _, other in ipairs(Players:GetPlayers()) do
+        if other ~= player then
+            local otherChar = other.Character
+            if otherChar then
+                local root = otherChar:FindFirstChild("HumanoidRootPart")
+                local head = otherChar:FindFirstChild("Head")
+                if root and head then
+                    if not espObjects[other] then createESP(other) end
+                    local pos, onScreen = camera:WorldToViewportPoint(root.Position)
+                    if onScreen then
+                        local esp = espObjects[other]
+                        esp.Name.Visible = true
+                        esp.Box.Visible = true
+                        esp.Dist.Visible = true
+                        esp.Name.Position = UDim2.new(0, pos.X - 50, 0, pos.Y - 50)
+                        local size = (head.Position - root.Position).Magnitude * 1.5
+                        esp.Box.Size = UDim2.new(0, size * 0.6, 0, size * 1.2)
+                        esp.Box.Position = UDim2.new(0, pos.X - size * 0.3, 0, pos.Y - size * 1.1)
+                        local dist = (root.Position - myRoot.Position).Magnitude
+                        esp.Dist.Text = string.format("%.0f", dist)
+                        esp.Dist.Position = UDim2.new(0, pos.X - 25, 0, pos.Y + 20)
+                        local color = Color3.fromHSV(math.clamp(dist / 100, 0, 1), 1, 1)
+                        esp.Box.BorderColor3 = color
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- === AIM Circle ===
+local function createAimCircle()
+    local circle = Instance.new("Frame")
+    circle.Size = UDim2.new(0, circleSize, 0, circleSize)
+    circle.Position = UDim2.new(0.5, -circleSize/2, 0.5, -circleSize/2)
+    circle.BackgroundTransparency = 1
+    circle.BorderSizePixel = 2
+    circle.BorderColor3 = Color3.fromRGB(255, 0, 0)
+    circle.Visible = false
+    circle.ZIndex = 10
+    circle.Parent = ScreenGui
+
+    local inner = Instance.new("Frame")
+    inner.Size = UDim2.new(0.8, 0, 0.8, 0)
+    inner.Position = UDim2.new(0.1, 0, 0.1, 0)
+    inner.BackgroundTransparency = 1
+    inner.BorderSizePixel = 2
+    inner.BorderColor3 = Color3.fromRGB(200, 0, 0)
+    inner.Parent = circle
+
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.new(0, 8, 0, 8)
+    dot.Position = UDim2.new(0.5, -4, 0.5, -4)
+    dot.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    dot.BackgroundTransparency = 0.3
+    dot.Parent = circle
+    return circle
+end
+
+local function getPlayersInCircle()
+    local char = player.Character
+    if not char then return {} end
+    local rootPart = char:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return {} end
+    local myPos = rootPart.Position
+    local radius = circleSize / 3.5
+    local targets = {}
+    for _, other in ipairs(Players:GetPlayers()) do
+        if other ~= player then
+            local otherChar = other.Character
+            if otherChar then
+                local otherRoot = otherChar:FindFirstChild("HumanoidRootPart")
+                if otherRoot then
+                    local dist = (otherRoot.Position - myPos).Magnitude
+                    if dist <= radius then
+                        table.insert(targets, {Player = other, Root = otherRoot, Distance = dist})
+                    end
+                end
+            end
+        end
+    end
+    table.sort(targets, function(a,b) return a.Distance < b.Distance end)
+    return targets
+end
+
+-- === AIM ===
+local function startAim()
+    if connections.aim then return end
+    aimCircle.Visible = true
+    connections.aim = RunService.Heartbeat:Connect(function()
+        if not features.aim then
+            aimCircle.Visible = false
+            return
+        end
+        local targets = getPlayersInCircle()
+        if #targets > 0 then
+            local target = targets[1]
+            local root = target.Root
+            if root then
+                local myChar = player.Character
+                if myChar and myChar:FindFirstChild("Head") then
+                    local head = myChar.Head
+                    local direction = (root.Position - head.Position).Unit
+                    local lookAt = head.Position + direction * 100
+                    camera.CFrame = CFrame.lookAt(camera.CFrame.Position, lookAt)
+                end
+            end
+            aimCircle.BorderColor3 = Color3.fromRGB(0,255,0)
+        else
+            aimCircle.BorderColor3 = Color3.fromRGB(255,0,0)
+        end
+    end)
+end
+
+local function stopAim()
+    if connections.aim then
+        connections.aim:Disconnect()
+        connections.aim = nil
+    end
+    aimCircle.Visible = false
+end
+
+-- === FLING ===
+local function startFling()
+    if connections.fling then return end
+    connections.fling = RunService.Heartbeat:Connect(function()
+        if not features.fling then return end
+        local myChar = player.Character
+        if not myChar then return end
+        local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+        if not myRoot then return end
+        local myPos = myRoot.Position
+
+        for _, other in ipairs(Players:GetPlayers()) do
+            if other ~= player then
+                local otherChar = other.Character
+                if otherChar then
+                    local root = otherChar:FindFirstChild("HumanoidRootPart")
+                    if root then
+                        local dist = (root.Position - myPos).Magnitude
+                        if dist < 50 then
+                            local dir = (root.Position - myPos).Unit
+                            local force = dir * Vector3.new(math.random(400,800), math.random(300,600), math.random(400,800))
+                            root.AssemblyLinearVelocity = root.AssemblyLinearVelocity + force
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function stopFling()
+    if connections.fling then
+        connections.fling:Disconnect()
+        connections.fling = nil
+    end
+end
+
+-- === SPEED ===
+local function startSpeed()
+    if connections.speed then return end
+    connections.speed = RunService.Heartbeat:Connect(function()
+        if not features.speed then return end
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then
+                hum.WalkSpeed = 80
+                hum.JumpPower = 80
+            end
+        end
+    end)
+end
+
+local function stopSpeed()
+    if connections.speed then
+        connections.speed:Disconnect()
+        connections.speed = nil
+    end
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChild("Humanoid")
+        if hum then
+            hum.WalkSpeed = 16
+            hum.JumpPower = 50
+        end
+    end
+end
+
+-- === Các hàm bật/tắt chung ===
+local function setESP(state)
+    features.esp = state
+    if not state then
+        for _, data in pairs(espObjects) do
+            data.Name.Visible = false
+            data.Box.Visible = false
+            data.Dist.Visible = false
+        end
+    end
+end
+local function setAim(state)
+    features.aim = state
+    if state then startAim() else stopAim() end
+end
+local function setFling(state)
+    features.fling = state
+    if state then startFling() else stopFling() end
+end
+local function setSpeed(state)
+    features.speed = state
+    if state then startSpeed() else stopSpeed() end
+end
+
+-- =============================================================
+-- ============
+-- =============================================================
+local mainContent = ContentHolders.Main
+
+local scrollFrame = Instance.new("ScrollingFrame", mainContent)
+scrollFrame.Size = UDim2.new(1, 0, 1, 0)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 4
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(150, 150, 180)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.ZIndex = 2
+scrollFrame.VerticalScrollBarPosition = Enum.VerticalScrollBarPosition.Right
+
+local container = Instance.new("Frame", scrollFrame)
+container.Size = UDim2.new(1, -10, 0, 0)
+container.BackgroundTransparency = 1
+container.ZIndex = 2
+
+local titleLabel = Instance.new("TextLabel", container)
+titleLabel.Size = UDim2.new(1, 0, 0, 30)
+titleLabel.Position = UDim2.new(0, 0, 0, 10)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Cài đặt"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextSize = 18
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- 
+local featureNames = {
+    "ESP",
+    "AIM",
+    "NÉN XA",
+    "CHẠY NHANH"
+}
+
+local yPos = 50
+local rowHeight = 42
+
+for i, name in ipairs(featureNames) do
+    local line = Instance.new("Frame", container)
+    line.Size = UDim2.new(1, 0, 0, 40)
+    line.Position = UDim2.new(0, 0, 0, yPos)
+    line.BackgroundTransparency = 1
+
+    if i > 1 then
+        local separator = Instance.new("Frame", line)
+        separator.Size = UDim2.new(1, 0, 0, 1)
+        separator.Position = UDim2.new(0, 0, 0, 0)
+        separator.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+        separator.BackgroundTransparency = 0.5
+        separator.BorderSizePixel = 0
+    end
+
+    -- Tạo Label  ( )
+    local nameLabel = Instance.new("TextLabel", line)
+    nameLabel.Size = UDim2.new(0, 120, 0, 20)
+    nameLabel.Position = UDim2.new(0, 10, 0.5, -10)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = name
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextSize = 14
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.ZIndex = 2
+    nameLabel.Name = name .. "Label"   -- đặt tên cho Label
+
+    -- Toggle button (bên phải)
+    local toggleBtn = Instance.new("TextButton", line)
+    toggleBtn.Size = UDim2.new(0, 50, 0, 28)
+    toggleBtn.Position = UDim2.new(1, -55, 0.5, -14)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    toggleBtn.Text = ""
+    toggleBtn.BorderSizePixel = 0
+    toggleBtn.ZIndex = 2
+
+    local corner = Instance.new("UICorner", toggleBtn)
+    corner.CornerRadius = UDim.new(0, 14)
+
+    local dot = Instance.new("TextLabel", toggleBtn)
+    dot.Size = UDim2.new(0, 22, 0, 22)
+    dot.Position = UDim2.new(0, 2, 0.5, -11)
+    dot.BackgroundTransparency = 1
+    dot.Text = "○"
+    dot.TextColor3 = Color3.fromRGB(200, 200, 200)
+    dot.Font = Enum.Font.GothamBold
+    dot.TextSize = 18
+    dot.ZIndex = 3
+
+    local isOn = false
+
+    local function updateToggle()
+        if isOn then
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+            dot.Text = "●"
+            dot.TextColor3 = Color3.fromRGB(255, 255, 255)
+            dot.Position = UDim2.new(1, -24, 0.5, -11)
+        else
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+            dot.Text = "○"
+            dot.TextColor3 = Color3.fromRGB(200, 200, 200)
+            dot.Position = UDim2.new(0, 2, 0.5, -11)
+        end
+    end
+
+    toggleBtn.MouseButton1Click:Connect(function()
+        isOn = not isOn
+        updateToggle()
+
+        if name == "ESP" then
+            setESP(isOn)
+        elseif name == "AIM" then
+            setAim(isOn)
+        elseif name == "NÉN XA" then
+            setFling(isOn)
+        elseif name == "CHẠY NHANH" then
+            setSpeed(isOn)
+        end
+        print(name .. " đã " .. (isOn and "BẬT" or "TẮT"))
+    end)
+
+    updateToggle()
+    yPos = yPos + rowHeight
+end
+
+local totalHeight = yPos + 20
+container.Size = UDim2.new(1, -10, 0, totalHeight)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight + 10)
+
+-- ====== TAB ĐỒ CHƠI KHÁC (giữ nguyên) ======
+local toysContent = ContentHolders["Đồ Chơi Khác"]
+local toyLabel = Instance.new("TextLabel", toysContent)
+toyLabel.Size = UDim2.new(1, -20, 0, 30)
+toyLabel.Position = UDim2.new(0, 10, 0, 10)
+toyLabel.BackgroundTransparency = 1
+toyLabel.Text = "Tính năng khác"
+toyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+toyLabel.Font = Enum.Font.GothamBold
+toyLabel.TextSize = 18
+toyLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- ====== TAB AUTHOR ( ) ======
+local authorContent = ContentHolders.Author
+local emptyLabel = Instance.new("TextLabel", authorContent)
+emptyLabel.Size = UDim2.new(1, -20, 1, -20)
+emptyLabel.Position = UDim2.new(0, 10, 0, 10)
+emptyLabel.BackgroundTransparency = 1
+emptyLabel.Text = ""
+emptyLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+emptyLabel.Font = Enum.Font.Gotham
+emptyLabel.TextSize = 14
+emptyLabel.TextYAlignment = Enum.TextYAlignment.Top
+emptyLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- ====== KÉO THẢ MENU ======
+local UserInputService2 = game:GetService("UserInputService")
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+
+UserInputService2.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UserInputService2.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- ======  /  ======
+CloseBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    OpenBtn.Visible = true
+end)
+
+OpenBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    OpenBtn.Visible = false
+end)
+
+-- ======  AIM CIRCLE ======
+aimCircle = createAimCircle()
+
+-- ======  ESP ======
+connections.espLoop = RunService.Heartbeat:Connect(updateESP)
+
+-- ======  ======
+ScreenGui.Destroying:Connect(function()
+    for _, conn in pairs(connections) do
+        if conn then conn:Disconnect() end
+    end
+    connections = {}
+    for _, data in pairs(espObjects) do
+        data.Name:Destroy()
+        data.Box:Destroy()
+        data.Dist:Destroy()
+    end
+    espObjects = {}
+end)
+
+-- ====== (T, Q, E, R) ======
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    local key = input.KeyCode
+    if key == Enum.KeyCode.T then
+        setESP(not features.esp)
+        for _, child in ipairs(container:GetDescendants()) do
+            if child:IsA("TextButton") and child.Parent then
+                local label = child.Parent:FindFirstChildWhichIsA("TextLabel")
+                if label and label.Text == "ESP" then
+                    child.MouseButton1Click:Fire()
+                    break
+                end
+            end
+        end
+    elseif key == Enum.KeyCode.Q then
+        setAim(not features.aim)
+        for _, child in ipairs(container:GetDescendants()) do
+            if child:IsA("TextButton") and child.Parent then
+                local label = child.Parent:FindFirstChildWhichIsA("TextLabel")
+                if label and label.Text == "AIM" then
+                    child.MouseButton1Click:Fire()
+                    break
+                end
+            end
+        end
+    elseif key == Enum.KeyCode.E then
+        setFling(not features.fling)
+        for _, child in ipairs(container:GetDescendants()) do
+            if child:IsA("TextButton") and child.Parent then
+                local label = child.Parent:FindFirstChildWhichIsA("TextLabel")
+                if label and label.Text == "NÉN XA" then
+                    child.MouseButton1Click:Fire()
+                    break
+                end
+            end
+        end
+    elseif key == Enum.KeyCode.R then
+        setSpeed(not features.speed)
+        for _, child in ipairs(container:GetDescendants()) do
+            if child:IsA("TextButton") and child.Parent then
+                local label = child.Parent:FindFirstChildWhichIsA("TextLabel")
+                if label and label.Text == "CHẠY NHANH" then
+                    child.MouseButton1Click:Fire()
+                    break
+                end
+            end
+        end
+    end
+end)
